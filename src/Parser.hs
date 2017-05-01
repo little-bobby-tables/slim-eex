@@ -6,7 +6,6 @@ module Parser where
   import Text.Megaparsec
   import Text.Megaparsec.String
   import qualified Text.Megaparsec.Lexer as L
-  import Text.Megaparsec.Prim (MonadParsec)
 
   newtype Tree = Tree [Node] deriving (Eq, Show)
 
@@ -31,10 +30,26 @@ module Parser where
   attribute :: Parser Attr
   attribute = do
     name <- title
-    return $ Attr (name, "")
+    _ <- char '='
+    content <- quotedString
+    return $ Attr (name, content)
 
   title :: Parser String
   title = lexeme $ some (alphaNumChar <|> char '_' <|> char '-')
+
+  quotedString :: Parser String
+  quotedString = do
+    _ <- char '"'
+    str <- many quotedChar
+    _ <- char '"'
+    return str
+    where
+      quotedChar :: Parser Char
+      quotedChar = unescaped <|> escaped
+      unescaped :: Parser Char
+      unescaped = noneOf "\\\""
+      escaped :: Parser Char
+      escaped = char '\\' >> oneOf "\\\""
 
   lexeme :: Parser a -> Parser a
   lexeme = L.lexeme sc
@@ -45,5 +60,5 @@ module Parser where
   scn :: Parser ()
   scn = L.space (void spaceChar) empty empty
 
-  spaceOrTab :: (MonadParsec e s m, Token s ~ Char) => m Char
+  spaceOrTab :: Parser Char
   spaceOrTab = oneOf " \t"
