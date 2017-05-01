@@ -23,19 +23,32 @@ module Parser where
 
   node :: Parser Node
   node = L.indentBlock scn $ do
-    name <- title
-    attributes <- attribute `sepBy` spaceOrTab
-    return $ L.IndentMany Nothing (return . (Node name attributes) . Tree) node
+    name <- htmlEntityName
+    shorthandAttrs <- many (dotClass <|> hashId)
+    attrs <- (shorthandAttrs ++) <$> attribute `sepBy` spaceOrTab
+    return $ L.IndentMany Nothing (return . (Node name attrs) . Tree) node
 
   attribute :: Parser Attr
   attribute = do
-    name <- title
+    name <- htmlEntityName
     _ <- char '='
     content <- quotedString
     return $ Attr (name, content)
 
-  title :: Parser String
-  title = lexeme $ some (alphaNumChar <|> char '_' <|> char '-')
+  dotClass :: Parser Attr
+  dotClass = do
+    _ <- char '.'
+    className <- htmlEntityName
+    return $ Attr ("class", className)
+
+  hashId :: Parser Attr
+  hashId = do
+    _ <- char '#'
+    idValue <- htmlEntityName
+    return $ Attr ("id", idValue)
+
+  htmlEntityName :: Parser String
+  htmlEntityName = lexeme $ some (alphaNumChar <|> char '_' <|> char '-')
 
   quotedString :: Parser String
   quotedString = do
