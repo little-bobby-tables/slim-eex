@@ -1,0 +1,36 @@
+name: slim-eex
+version: 0.1.0
+synopsis: Slim -> EEx template language parser
+description: See README at <https://github.com/little-bobby-tables/slim-eex#readme>
+maintainer: little-bobby-tables <whitediamond@fanuniverse.org>
+license: PublicDomain
+github: little-bobby-tables/slim-eex
+category: Parser
+
+default-extensions:
+
+ghc-options: -Wall -O2
+
+dependencies:
+  - base >= 4.7 && < 5
+  - containers
+  - megaparsec
+
+library:
+  source-dirs: src
+
+executables:
+  slim-eex:
+    main: Main.hs
+    source-dirs: app
+    dependencies:
+      - slim-eex
+
+tests:
+  spec:
+    main: Spec.hs
+    source-dirs:
+      - test
+      - src
+    dependencies:
+      - hspec

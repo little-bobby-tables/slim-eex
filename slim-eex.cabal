@@ -1,0 +1,60 @@
+-- This file has been generated from package.yaml by hpack version 0.17.0.
+--
+-- see: https://github.com/sol/hpack
+
+name:                slim-eex
+version:             0.1.0
+synopsis:            Slim -> EEx template language parser
+description:         See README at <https://github.com/little-bobby-tables/slim-eex#readme>
+homepage:            https://github.com/little-bobby-tables/slim-eex#readme
+bug-reports:         https://github.com/little-bobby-tables/slim-eex/issues
+license:             PublicDomain
+license-file:        LICENSE
+maintainer:          little-bobby-tables <whitediamond@fanuniverse.org>
+category:            Parser
+build-type:          Simple
+cabal-version:       >= 1.10
+
+source-repository head
+  type: git
+  location: https://github.com/little-bobby-tables/slim-eex
+
+library
+  hs-source-dirs:
+      src
+  ghc-options: -Wall -O2
+  exposed-modules:
+      Lib
+  build-depends:
+      base >= 4.7 && < 5
+    , containers
+    , megaparsec
+  default-language: Haskell2010
+
+executable slim-eex
+  main-is: Main.hs
+  hs-source-dirs:
+      app
+  ghc-options: -Wall -O2
+  build-depends:
+      base >= 4.7 && < 5
+    , containers
+    , megaparsec
+    , slim-eex
+  default-language: Haskell2010
+
+test-suite spec
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  hs-source-dirs:
+      test
+      src
+  ghc-options: -Wall -O2
+  build-depends:
+      base >= 4.7 && < 5
+    , containers
+    , megaparsec
+    , hspec
+  other-modules:
+      Lib
+  default-language: Haskell2010
