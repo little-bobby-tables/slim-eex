@@ -1,6 +1,6 @@
 {-# LANGUAGE TypeFamilies #-}
 
-module Main where
+module Parser where
   import Control.Applicative (empty)
   import Control.Monad (void)
   import Text.Megaparsec
@@ -8,11 +8,11 @@ module Main where
   import qualified Text.Megaparsec.Lexer as L
   import Text.Megaparsec.Prim (MonadParsec)
 
-  newtype Tree = Tree [Node] deriving (Show)
+  newtype Tree = Tree [Node] deriving (Eq, Show)
 
-  data Node = Node String [Attr] Tree deriving (Show)
+  data Node = Node String [Attr] Tree deriving (Eq, Show)
 
-  newtype Attr = Attr (String, String) deriving (Show)
+  newtype Attr = Attr (String, String) deriving (Eq, Show)
 
   slim :: Parser Tree
   slim = tree <* eof

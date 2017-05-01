@@ -12,8 +12,7 @@ default-extensions:
 ghc-options: -Wall -O2
 
 dependencies:
-  - base >= 4.7 && < 5
-  - containers
+  - base >= 4.9 && < 5
   - megaparsec
 
 library:
@@ -34,3 +33,5 @@ tests:
       - src
     dependencies:
       - hspec
+      - hspec-megaparsec
+      - neat-interpolation
