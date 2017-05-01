@@ -47,15 +47,3 @@ module Parser where
 
   spaceOrTab :: (MonadParsec e s m, Token s ~ Char) => m Char
   spaceOrTab = oneOf " \t"
-
-  main :: IO ()
-  main = do
-    let source = "\
-    \head \n\
-    \  title \n\
-    \    nested data-attr \n\
-    \  meta \n\
-    \body \n\
-    \  div \n\
-    \"
-    parseTest slim source
