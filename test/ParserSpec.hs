@@ -1,7 +1,7 @@
  {-# LANGUAGE QuasiQuotes, OverloadedStrings #-}
 
 module ParserSpec where
-  import Parser (Tree(..), Node(..), Attr(..), slim)
+  import Parser (Tree(..), Node(..), Attr(..), EmbeddedCode(..), slim)
 
   import Test.Hspec
   import Test.Hspec.Megaparsec
@@ -59,7 +59,7 @@ module ParserSpec where
               Attr ("class", "1_class")
             , Attr ("class", "another-class")
             , Attr ("class", "yet-another-class")] $ Tree []
-          ,  Node "span" [
+          , Node "span" [
               Attr ("id", "some_id1")
             , Attr ("id", "someid2")
             , Attr ("id", "some-id3")] $ Tree []
@@ -69,4 +69,35 @@ module ParserSpec where
             , Attr ("id", "is-also")
             , Attr ("class", "fine")
             , Attr ("class", "definitely")] $ Tree []
+          ]
+
+    describe "embedded code" $ do
+      it "parses embedded code" $ do
+
+        parse slim "<source>" (unpack [text|
+        - cond = true
+        = if cond do
+          div data-cond="true"
+            == "<script>unescaped()</script>"
+        - else
+          div
+            oops
+        |]) `shouldParse`
+          Tree [
+            EmbeddedCodeNode
+              (ControlCode "cond = true") (Tree [])
+          , EmbeddedCodeNode
+              (EscapedCode "if cond do") (Tree [
+                Node "div" [Attr ("data-cond", "true")]
+                  (Tree [
+                    EmbeddedCodeNode
+                      (UnescapedCode "\"<script>unescaped()</script>\"") (Tree [])
+                  ])
+              ])
+          , EmbeddedCodeNode
+              (ControlCode "else") (Tree [
+                Node "div" [] (Tree [
+                  Node "oops" [] (Tree [])
+                ])
+              ])
           ]

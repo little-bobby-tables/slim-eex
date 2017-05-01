@@ -9,9 +9,16 @@ module Parser where
 
   newtype Tree = Tree [Node] deriving (Eq, Show)
 
-  data Node = Node String [Attr] Tree deriving (Eq, Show)
+  data Node = Node String [Attr] Tree
+            | EmbeddedCodeNode EmbeddedCode Tree
+    deriving (Eq, Show)
 
   newtype Attr = Attr (String, String) deriving (Eq, Show)
+
+  data EmbeddedCode = ControlCode String
+                    | EscapedCode String
+                    | UnescapedCode String
+    deriving (Eq, Show)
 
   slim :: Parser Tree
   slim = tree <* eof
@@ -22,11 +29,31 @@ module Parser where
     return $ Tree nodes
 
   node :: Parser Node
-  node = L.indentBlock scn $ do
+  node = codeNode <|> htmlNode
+
+  htmlNode :: Parser Node
+  htmlNode = L.indentBlock scn $ do
     name <- htmlEntityName
     shorthandAttrs <- many (dotClass <|> hashId)
     attrs <- (shorthandAttrs ++) <$> attribute `sepBy` spaceOrTab
     return $ L.IndentMany Nothing (return . (Node name attrs) . Tree) node
+
+  codeNode :: Parser Node
+  codeNode = L.indentBlock scn $ do
+    code <- embeddedCode
+    return $ L.IndentMany Nothing (return . (EmbeddedCodeNode code) . Tree) node
+
+  embeddedCode :: Parser EmbeddedCode
+  embeddedCode = control <|> unescaped <|> escaped
+    where
+      control :: Parser EmbeddedCode
+      control = char '-' >> code >>= return . ControlCode
+      unescaped :: Parser EmbeddedCode
+      unescaped = string "==" >> code >>= return . UnescapedCode
+      escaped :: Parser EmbeddedCode
+      escaped = char '=' >> code >>= return . EscapedCode
+      code :: Parser String
+      code = spaceOrTab >> anyChar `manyTill` (lookAhead newline)
 
   attribute :: Parser Attr
   attribute = do
