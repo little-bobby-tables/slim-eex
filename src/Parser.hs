@@ -7,9 +7,12 @@ module Parser where
   import Text.Megaparsec.String
   import qualified Text.Megaparsec.Lexer as L
 
+  import Data.List.Split (splitOn)
+
   newtype Tree = Tree [Node] deriving (Eq, Show)
 
   data Node = Node String [Attr] Tree
+            | VerbatimTextNode String
             | EmbeddedCodeNode EmbeddedCode Tree
     deriving (Eq, Show)
 
@@ -29,7 +32,7 @@ module Parser where
     return $ Tree nodes
 
   node :: Parser Node
-  node = codeNode <|> htmlNode
+  node = codeNode <|> htmlNode <|> verbatimTextNode
 
   htmlNode :: Parser Node
   htmlNode = L.indentBlock scn $ do
@@ -43,17 +46,47 @@ module Parser where
     code <- embeddedCode
     return $ L.IndentMany Nothing (return . (EmbeddedCodeNode code) . Tree) node
 
+  verbatimTextNode :: Parser Node
+  verbatimTextNode = do
+    indent <- L.indentLevel
+    _ <- char '|'
+    pipeIndent <- (fromIntegral (unPos indent) +) .
+      length <$> optional spaceOrTab
+    textLines <- anyChar `manyTill` try (L.indentGuard scn LT indent)
+    let (firstLine:indentedLines) = splitOn "\n" textLines
+        text = firstLine ++ concatMap (drop pipeIndent) indentedLines
+    return (VerbatimTextNode text)
+  -- verbatimTextNode :: Parser Node
+  -- verbatimTextNode = L.indentBlock scn $ do
+  --   pipeIndent <- L.indentLevel
+  --   _ <- char '|'
+  --   textIndent <- ((shiftBy pipeIndent) . length) <$> optional spaceOrTab
+  --   text <- restOfLine
+  --   return $ L.IndentMany Nothing
+  --     (return . VerbatimTextNode . concatMap (text ++)) (nestedText textIndent)
+  --   where
+  --     shiftBy :: Pos -> Int -> Pos
+  --     shiftBy indent n =
+  --       unsafePos . fromIntegral $ ((n +) . fromIntegral . unPos) indent
+  --     nestedText :: Pos -> Parser String
+  --     nestedText indent = do
+  --       let topIndent = fromIntegral (unPos indent)
+  --       line <- anyChar `manyTill` try (L.indentGuard scn LT indent)
+  --       let (h:indented) = splitOn "\n" line
+  --       return $ h ++ concatMap (drop topIndent) indented
+
   embeddedCode :: Parser EmbeddedCode
   embeddedCode = control <|> unescaped <|> escaped
     where
       control :: Parser EmbeddedCode
-      control = char '-' >> code >>= return . ControlCode
+      control = char '-' >> restOfLine >>= return . ControlCode
       unescaped :: Parser EmbeddedCode
-      unescaped = string "==" >> code >>= return . UnescapedCode
+      unescaped = string "==" >> restOfLine >>= return . UnescapedCode
       escaped :: Parser EmbeddedCode
-      escaped = char '=' >> code >>= return . EscapedCode
-      code :: Parser String
-      code = spaceOrTab >> anyChar `manyTill` (lookAhead newline)
+      escaped = char '=' >> restOfLine >>= return . EscapedCode
+
+  restOfLine :: Parser String
+  restOfLine = optional spaceOrTab >> anyChar `manyTill` (lookAhead newline)
 
   attribute :: Parser Attr
   attribute = do

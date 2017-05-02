@@ -14,6 +14,7 @@ ghc-options: -Wall -O2
 dependencies:
   - base >= 4.9 && < 5
   - megaparsec
+  - split
 
 library:
   source-dirs: src

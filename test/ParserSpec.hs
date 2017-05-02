@@ -35,6 +35,38 @@ module ParserSpec where
               Tree [Node "div" [] $ Tree []]
           ]
 
+      it "parses verbatim text nodes" $ do
+        parse slim "<source>" (unpack [text|
+        p
+          | Head
+            No spaces in front of the line.
+             One space in front it.
+              Two spaces in front of it.
+                 Five spaces in front of it.
+             One space.
+        p
+          |Head
+           No spaces.
+            One space.
+        p
+          | Head
+             One space.
+        |]) `shouldParse`
+          Tree [
+            Node "p" [] (Tree [
+              VerbatimTextNode "HeadNo spaces in front of the line\
+                \. One space in front it.  Two spaces in front of it\
+                \.     Five spaces in front of it\
+                \. One space."
+            ])
+          , Node "p" [] (Tree [
+              VerbatimTextNode "HeadNo spaces. One space."
+            ])
+          , Node "p" [] (Tree [
+              VerbatimTextNode "Head One space."
+            ])
+          ]
+
       it "parses string attributes" $ do
         parse slim "<source>" (unpack [text|
         div data-source="some source"
@@ -72,8 +104,7 @@ module ParserSpec where
           ]
 
     describe "embedded code" $ do
-      it "parses embedded code" $ do
-
+      it "parses embedded code at the beginning of a line" $ do
         parse slim "<source>" (unpack [text|
         - cond = true
         = if cond do

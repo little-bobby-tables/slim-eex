@@ -28,6 +28,7 @@ library
   build-depends:
       base >= 4.9 && < 5
     , megaparsec
+    , split
   default-language: Haskell2010
 
 executable slim-eex
@@ -38,6 +39,7 @@ executable slim-eex
   build-depends:
       base >= 4.9 && < 5
     , megaparsec
+    , split
     , slim-eex
   default-language: Haskell2010
 
@@ -51,6 +53,7 @@ test-suite spec
   build-depends:
       base >= 4.9 && < 5
     , megaparsec
+    , split
     , hspec
     , hspec-megaparsec
     , text
