@@ -27,9 +27,7 @@ module Parser where
   slim = tree <* eof
 
   tree :: Parser Tree
-  tree = do
-    nodes <- many $ L.nonIndented scn node
-    return $ Tree nodes
+  tree = Tree <$> many (L.nonIndented scn node)
 
   node :: Parser Node
   node = codeNode <|> htmlNode <|> verbatimTextNode
@@ -39,12 +37,12 @@ module Parser where
     name <- htmlEntityName
     shorthandAttrs <- many (dotClass <|> hashId)
     attrs <- (shorthandAttrs ++) <$> attribute `sepBy` spaceOrTab
-    return $ L.IndentMany Nothing (return . (Node name attrs) . Tree) node
+    return $ L.IndentMany Nothing (return . Node name attrs . Tree) node
 
   codeNode :: Parser Node
   codeNode = L.indentBlock scn $ do
     code <- embeddedCode
-    return $ L.IndentMany Nothing (return . (EmbeddedCodeNode code) . Tree) node
+    return $ L.IndentMany Nothing (return . EmbeddedCodeNode code . Tree) node
 
   verbatimTextNode :: Parser Node
   verbatimTextNode = do
@@ -54,26 +52,8 @@ module Parser where
       length <$> optional spaceOrTab
     textLines <- anyChar `manyTill` try (L.indentGuard scn LT indent)
     let (firstLine:indentedLines) = splitOn "\n" textLines
-        text = firstLine ++ concatMap (drop pipeIndent) indentedLines
-    return (VerbatimTextNode text)
-  -- verbatimTextNode :: Parser Node
-  -- verbatimTextNode = L.indentBlock scn $ do
-  --   pipeIndent <- L.indentLevel
-  --   _ <- char '|'
-  --   textIndent <- ((shiftBy pipeIndent) . length) <$> optional spaceOrTab
-  --   text <- restOfLine
-  --   return $ L.IndentMany Nothing
-  --     (return . VerbatimTextNode . concatMap (text ++)) (nestedText textIndent)
-  --   where
-  --     shiftBy :: Pos -> Int -> Pos
-  --     shiftBy indent n =
-  --       unsafePos . fromIntegral $ ((n +) . fromIntegral . unPos) indent
-  --     nestedText :: Pos -> Parser String
-  --     nestedText indent = do
-  --       let topIndent = fromIntegral (unPos indent)
-  --       line <- anyChar `manyTill` try (L.indentGuard scn LT indent)
-  --       let (h:indented) = splitOn "\n" line
-  --       return $ h ++ concatMap (drop topIndent) indented
+        text = firstLine ++ (drop pipeIndent =<< indentedLines)
+    return $ VerbatimTextNode text
 
   embeddedCode :: Parser EmbeddedCode
   embeddedCode = control <|> unescaped <|> escaped
@@ -86,7 +66,7 @@ module Parser where
       escaped = char '=' >> restOfLine >>= return . EscapedCode
 
   restOfLine :: Parser String
-  restOfLine = optional spaceOrTab >> anyChar `manyTill` (lookAhead newline)
+  restOfLine = optional spaceOrTab >> anyChar `manyTill` lookAhead newline
 
   attribute :: Parser Attr
   attribute = do
@@ -128,7 +108,7 @@ module Parser where
   lexeme = L.lexeme sc
 
   sc :: Parser ()
-  sc = L.space (void $ spaceOrTab) empty empty
+  sc = L.space (void spaceOrTab) empty empty
 
   scn :: Parser ()
   scn = L.space (void spaceChar) empty empty
