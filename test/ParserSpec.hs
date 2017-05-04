@@ -51,6 +51,16 @@ module ParserSpec where
         p
           | Head
              One space.
+        p
+          | No spaces.
+          |
+            No spaces.
+             One space.
+          |
+
+
+            No spaces.
+              Two spaces.
         |]) `shouldParse`
           Tree [
             Node "p" [] (Tree [
@@ -64,6 +74,11 @@ module ParserSpec where
             ])
           , Node "p" [] (Tree [
               VerbatimTextNode "Head One space."
+            ])
+          , Node "p" [] (Tree [
+              VerbatimTextNode "No spaces."
+            , VerbatimTextNode "No spaces. One space."
+            , VerbatimTextNode "No spaces.  Two spaces."
             ])
           ]
 

@@ -46,13 +46,18 @@ module Parser where
 
   verbatimTextNode :: Parser Node
   verbatimTextNode = do
-    indent <- L.indentLevel
-    _ <- char '|'
-    pipeIndent <- (fromIntegral (unPos indent) +) .
-      length <$> optional spaceOrTab
-    textLines <- anyChar `manyTill` try (L.indentGuard scn LT indent)
-    let (firstLine:indentedLines) = splitOn "\n" textLines
-        text = firstLine ++ (drop pipeIndent =<< indentedLines)
+    lineIndent <- L.indentLevel
+    pipeIndent <- char '|' >> L.indentLevel
+    textIndent <- (\leadingNewlines spaces ->
+      if leadingNewlines
+        then spaces
+        else spaces + fromIntegral (unPos lineIndent))
+      <$> ((> 0) . length <$> many newline)
+      <*> (length <$> many spaceOrTab)
+    firstLine <- anyChar `manyTill` newline
+    indentedLines <- splitOn "\n"
+      <$> anyChar `manyTill` try (L.indentGuard scn LT pipeIndent)
+    let text = firstLine ++ (drop textIndent =<< indentedLines)
     return $ VerbatimTextNode text
 
   embeddedCode :: Parser EmbeddedCode
