@@ -12,8 +12,9 @@ module Parser where
   newtype Tree = Tree [Node] deriving (Eq, Show)
 
   data Node = Node String [Attr] Tree
-            | VerbatimTextNode String
             | EmbeddedCodeNode EmbeddedCode Tree
+            | VerbatimTextNode String
+            | CommentNode Comment
     deriving (Eq, Show)
 
   newtype Attr = Attr (String, String) deriving (Eq, Show)
@@ -23,6 +24,10 @@ module Parser where
                     | UnescapedCode String
     deriving (Eq, Show)
 
+  data Comment = SlimComment String
+               | HtmlComment String
+    deriving (Eq, Show)
+
   slim :: Parser Tree
   slim = tree <* eof
 
@@ -30,7 +35,11 @@ module Parser where
   tree = Tree <$> many (L.nonIndented scn node)
 
   node :: Parser Node
-  node = codeNode <|> htmlNode <|> verbatimTextNode
+  node = commentNode
+        <|> codeNode
+        <|> htmlNode
+        <|> verbatimTextNode
+        <?> "an HTML element, text, embedded code, comment"
 
   htmlNode :: Parser Node
   htmlNode = L.indentBlock scn $ do
@@ -44,22 +53,6 @@ module Parser where
     code <- embeddedCode
     return $ L.IndentMany Nothing (return . EmbeddedCodeNode code . Tree) node
 
-  verbatimTextNode :: Parser Node
-  verbatimTextNode = do
-    lineIndent <- L.indentLevel
-    pipeIndent <- char '|' >> L.indentLevel
-    textIndent <- (\leadingNewlines spaces ->
-      if leadingNewlines
-        then spaces
-        else spaces + fromIntegral (unPos lineIndent))
-      <$> ((> 0) . length <$> many newline)
-      <*> (length <$> many spaceOrTab)
-    firstLine <- anyChar `manyTill` newline
-    indentedLines <- splitOn "\n"
-      <$> anyChar `manyTill` try (L.indentGuard scn LT pipeIndent)
-    let text = firstLine ++ (drop textIndent =<< indentedLines)
-    return $ VerbatimTextNode text
-
   embeddedCode :: Parser EmbeddedCode
   embeddedCode = control <|> unescaped <|> escaped
     where
@@ -69,6 +62,31 @@ module Parser where
       unescaped = string "==" >> restOfLine >>= return . UnescapedCode
       escaped :: Parser EmbeddedCode
       escaped = char '=' >> restOfLine >>= return . EscapedCode
+
+  verbatimTextNode :: Parser Node
+  verbatimTextNode = textBlock "|" >>= return . VerbatimTextNode
+
+  commentNode :: Parser Node
+  commentNode = (textBlock "\\!" >>= return . CommentNode . HtmlComment)
+            <|> (textBlock "\\" >>= return . CommentNode . SlimComment)
+
+  textBlock :: String -> Parser String
+  textBlock separator = do
+    separatorIndent <- string separator >> L.indentLevel
+    textIndent <- (\leadingNewlines spaces ->
+      if leadingNewlines
+        then spaces
+        else (spaces - 1) + fromIntegral (unPos separatorIndent))
+      <$> ((> 0) . length <$> many newline)
+      <*> (length <$> many spaceOrTab)
+    firstLine <- anyChar `manyTill` newline
+    indentedLines <- splitOn "\n"
+      <$> anyChar `manyTill` try (L.indentGuard scn LT separatorIndent)
+    return $ firstLine ++ (drop textIndent =<< indentedLines) -- (show lineIndent) ++ (show separatorIndent) --
+
+  slimComment :: Parser ()
+  slimComment = do
+    return ()
 
   restOfLine :: Parser String
   restOfLine = optional spaceOrTab >> anyChar `manyTill` lookAhead newline

@@ -1,7 +1,7 @@
  {-# LANGUAGE QuasiQuotes, OverloadedStrings #-}
 
 module ParserSpec where
-  import Parser (Tree(..), Node(..), Attr(..), EmbeddedCode(..), slim)
+  import Parser (Tree(..), Node(..), Attr(..), EmbeddedCode(..), Comment(..), slim)
 
   import Test.Hspec
   import Test.Hspec.Megaparsec
@@ -146,4 +146,48 @@ module ParserSpec where
                   Node "oops" [] (Tree [])
                 ])
               ])
+          ]
+
+    describe "comments" $ do
+      it "parses html comments" $ do
+        parse slim "<source>" (unpack [text|
+        \! HTML comments
+            have similar semantics to other text blocks:
+              they support nesting, with indentation being converted to spaces
+        div
+          \!
+             You can
+              start them
+          \!
+            On
+              another line
+        |]) `shouldParse`
+          Tree [
+            CommentNode (HtmlComment "HTML comments\
+            \ have similar semantics to other text blocks:   they\
+            \ support nesting, with indentation being converted to spaces")
+          , Node "div" [] (Tree [
+              CommentNode (HtmlComment "You can start them")
+            , CommentNode (HtmlComment "On  another line")
+            ])
+          ]
+
+      it "parses slim comments" $ do
+        parse slim "<source>" (unpack [text|
+        \ Comment
+          s
+        \ Comment
+           Indented comment
+             div.i-dont-need-this
+               | I don't need this either
+        div.uncommented
+          \ Comment
+        |]) `shouldParse`
+          Tree [
+            CommentNode (SlimComment "Comments")
+          , CommentNode (SlimComment "Comment Indented comment\
+            \   div.i-dont-need-this     | I don't need this either")
+          , Node "div" [Attr ("class", "uncommented")] (Tree [
+              CommentNode (SlimComment "Comment")
+            ])
           ]
