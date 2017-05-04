@@ -82,11 +82,7 @@ module Parser where
     firstLine <- anyChar `manyTill` newline
     indentedLines <- splitOn "\n"
       <$> anyChar `manyTill` try (L.indentGuard scn LT separatorIndent)
-    return $ firstLine ++ (drop textIndent =<< indentedLines) -- (show lineIndent) ++ (show separatorIndent) --
-
-  slimComment :: Parser ()
-  slimComment = do
-    return ()
+    return $ firstLine ++ (drop textIndent =<< indentedLines)
 
   restOfLine :: Parser String
   restOfLine = optional spaceOrTab >> anyChar `manyTill` lookAhead newline
