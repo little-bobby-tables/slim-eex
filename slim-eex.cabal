@@ -59,6 +59,9 @@ test-suite spec
     , text
     , neat-interpolation
   other-modules:
+      Parser.CommentsSpec
+      Parser.EmbeddedCodeSpec
+      Parser.TextNodeSpec
       ParserSpec
       Parser
   default-language: Haskell2010

@@ -1,7 +1,7 @@
  {-# LANGUAGE QuasiQuotes, OverloadedStrings #-}
 
 module ParserSpec where
-  import Parser (Tree(..), Node(..), Attr(..), EmbeddedCode(..), Comment(..), slim)
+  import Parser (Tree(..), Node(..), Attr(..), slim)
 
   import Test.Hspec
   import Test.Hspec.Megaparsec
@@ -33,53 +33,6 @@ module ParserSpec where
                   , Node "meta" [] $ Tree []]
           , Node "body" [] $
               Tree [Node "div" [] $ Tree []]
-          ]
-
-      it "parses verbatim text nodes" $ do
-        parse slim "<source>" (unpack [text|
-        p
-          | Head
-            No spaces in front of the line.
-             One space in front it.
-              Two spaces in front of it.
-                 Five spaces in front of it.
-             One space.
-        p
-          |Head
-           No spaces.
-            One space.
-        p
-          | Head
-             One space.
-        p
-          | No spaces.
-          |
-            No spaces.
-             One space.
-          |
-
-
-            No spaces.
-              Two spaces.
-        |]) `shouldParse`
-          Tree [
-            Node "p" [] (Tree [
-              VerbatimTextNode "HeadNo spaces in front of the line\
-                \. One space in front it.  Two spaces in front of it\
-                \.     Five spaces in front of it\
-                \. One space."
-            ])
-          , Node "p" [] (Tree [
-              VerbatimTextNode "HeadNo spaces. One space."
-            ])
-          , Node "p" [] (Tree [
-              VerbatimTextNode "Head One space."
-            ])
-          , Node "p" [] (Tree [
-              VerbatimTextNode "No spaces."
-            , VerbatimTextNode "No spaces. One space."
-            , VerbatimTextNode "No spaces.  Two spaces."
-            ])
           ]
 
       it "parses string attributes" $ do
@@ -116,78 +69,4 @@ module ParserSpec where
             , Attr ("id", "is-also")
             , Attr ("class", "fine")
             , Attr ("class", "definitely")] $ Tree []
-          ]
-
-    describe "embedded code" $ do
-      it "parses embedded code at the beginning of a line" $ do
-        parse slim "<source>" (unpack [text|
-        - cond = true
-        = if cond do
-          div data-cond="true"
-            == "<script>unescaped()</script>"
-        - else
-          div
-            oops
-        |]) `shouldParse`
-          Tree [
-            EmbeddedCodeNode
-              (ControlCode "cond = true") (Tree [])
-          , EmbeddedCodeNode
-              (EscapedCode "if cond do") (Tree [
-                Node "div" [Attr ("data-cond", "true")]
-                  (Tree [
-                    EmbeddedCodeNode
-                      (UnescapedCode "\"<script>unescaped()</script>\"") (Tree [])
-                  ])
-              ])
-          , EmbeddedCodeNode
-              (ControlCode "else") (Tree [
-                Node "div" [] (Tree [
-                  Node "oops" [] (Tree [])
-                ])
-              ])
-          ]
-
-    describe "comments" $ do
-      it "parses html comments" $ do
-        parse slim "<source>" (unpack [text|
-        \! HTML comments
-            have similar semantics to other text blocks:
-              they support nesting, with indentation being converted to spaces
-        div
-          \!
-             You can
-              start them
-          \!
-            On
-              another line
-        |]) `shouldParse`
-          Tree [
-            CommentNode (HtmlComment "HTML comments\
-            \ have similar semantics to other text blocks:   they\
-            \ support nesting, with indentation being converted to spaces")
-          , Node "div" [] (Tree [
-              CommentNode (HtmlComment "You can start them")
-            , CommentNode (HtmlComment "On  another line")
-            ])
-          ]
-
-      it "parses slim comments" $ do
-        parse slim "<source>" (unpack [text|
-        \ Comment
-          s
-        \ Comment
-           Indented comment
-             div.i-dont-need-this
-               | I don't need this either
-        div.uncommented
-          \ Comment
-        |]) `shouldParse`
-          Tree [
-            CommentNode (SlimComment "Comments")
-          , CommentNode (SlimComment "Comment Indented comment\
-            \   div.i-dont-need-this     | I don't need this either")
-          , Node "div" [Attr ("class", "uncommented")] (Tree [
-              CommentNode (SlimComment "Comment")
-            ])
           ]
