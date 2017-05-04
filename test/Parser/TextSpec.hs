@@ -1,6 +1,6 @@
 {-# LANGUAGE QuasiQuotes, OverloadedStrings #-}
 
-module Parser.TextNodeSpec where
+module Parser.TextSpec where
  import Parser (Tree(..), Node(..), slim)
 
  import Test.Hspec
