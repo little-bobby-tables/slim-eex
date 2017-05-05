@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeFamilies, TupleSections #-}
 
 module Parser where
   import Control.Applicative (empty)
@@ -46,33 +46,29 @@ module Parser where
     name <- htmlEntityName
     shorthandAttrs <- many (dotClass <|> hashId)
     attrs <- (shorthandAttrs ++) <$> attributes
-    return $ L.IndentMany Nothing (return . Node name attrs . Tree) node
+    return $ L.IndentMany Nothing (pure . Node name attrs . Tree) node
 
   codeNode :: Parser Node
   codeNode = L.indentBlock scn $ do
     code <- embeddedCode
-    return $ L.IndentMany Nothing (return . EmbeddedCodeNode code . Tree) node
+    return $ L.IndentMany Nothing (pure . EmbeddedCodeNode code . Tree) node
 
   embeddedCode :: Parser EmbeddedCode
-  embeddedCode = control <|> unescaped <|> escaped
-    where
-      control :: Parser EmbeddedCode
-      control = char '-' >> restOfLine >>= return . ControlCode
-      unescaped :: Parser EmbeddedCode
-      unescaped = string "==" >> restOfLine >>= return . UnescapedCode
-      escaped :: Parser EmbeddedCode
-      escaped = char '=' >> restOfLine >>= return . EscapedCode
+  embeddedCode = ControlCode   <$> (char '-' *> restOfLine)
+             <|> UnescapedCode <$> (string "==" *> restOfLine)
+             <|> EscapedCode   <$> (char '=' *> restOfLine)
 
   verbatimTextNode :: Parser Node
-  verbatimTextNode = textBlock "|" >>= return . VerbatimTextNode
+  verbatimTextNode = VerbatimTextNode <$> textBlock "|"
 
   commentNode :: Parser Node
-  commentNode = (textBlock "\\!" >>= return . CommentNode . HtmlComment)
-            <|> (textBlock "\\" >>= return . CommentNode . SlimComment)
+  commentNode = CommentNode <$> (
+        HtmlComment <$> textBlock "\\!"
+    <|> SlimComment <$> textBlock "\\")
 
   textBlock :: String -> Parser String
   textBlock separator = do
-    separatorIndent <- string separator >> L.indentLevel
+    separatorIndent <- string separator *> L.indentLevel
     textIndent <- (\leadingNewlines spaces ->
       if leadingNewlines
         then spaces
@@ -85,7 +81,7 @@ module Parser where
     return $ firstLine ++ (drop textIndent =<< indentedLines)
 
   restOfLine :: Parser String
-  restOfLine = optional spaceOrTab >> anyChar `manyTill` lookAhead newline
+  restOfLine = optional spaceOrTab *> anyChar `manyTill` lookAhead newline
 
   attributes :: Parser [Attr]
   attributes = between (symbol "(") (symbol ")") multilineAttrs
@@ -105,29 +101,22 @@ module Parser where
       attr value = Attr <$> ((,) <$> htmlEntityName <*> value)
 
   dotClass :: Parser Attr
-  dotClass = do
-    _ <- char '.'
-    className <- htmlEntityName
-    return $ Attr ("class", className)
+  dotClass = (Attr . ("class",)) <$> (char '.' *> htmlEntityName)
 
   hashId :: Parser Attr
-  hashId = do
-    _ <- char '#'
-    idValue <- htmlEntityName
-    return $ Attr ("id", idValue)
+  hashId = (Attr . ("id",)) <$> (char '#' *> htmlEntityName)
 
   htmlEntityName :: Parser String
   htmlEntityName = lexeme $ some (alphaNumChar <|> char '_' <|> char '-')
 
   quotedString :: Parser String
-  quotedString = lexeme $ char '"' *> (many quotedChar) <* char '"'
+  quotedString = lexeme $ char '"' *> many quotedChar <* char '"'
     where
       quotedChar :: Parser Char
       quotedChar = unescaped <|> escaped
-      unescaped :: Parser Char
-      unescaped = noneOf "\\\""
-      escaped :: Parser Char
-      escaped = char '\\' >> oneOf "\\\""
+        where
+          unescaped = noneOf "\\\""
+          escaped = char '\\' *> oneOf "\\\""
 
   symbol :: String -> Parser String
   symbol = L.symbol sc
