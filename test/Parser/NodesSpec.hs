@@ -1,6 +1,6 @@
- {-# LANGUAGE QuasiQuotes, OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes, OverloadedStrings #-}
 
-module ParserSpec where
+module Parser.NodesSpec where
   import Parser (Tree(..), Node(..), slim)
 
   import Test.Hspec
@@ -17,7 +17,7 @@ module ParserSpec where
   spec :: Spec
   spec = do
     describe "nodes" $ do
-      it "parses nested nodes" $ do
+      it "may be nested" $ do
         parse slim "<source>" (unpack [text|
         head
           title
@@ -27,10 +27,13 @@ module ParserSpec where
           div
         |]) `shouldParse`
           Tree [
-            Node "head" [] $
-              Tree [Node "title" [] $
-                Tree [Node "nested" [] $ Tree []]
-                  , Node "meta" [] $ Tree []]
-          , Node "body" [] $
-              Tree [Node "div" [] $ Tree []]
+            Node "head" [] (Tree [
+              Node "title" [] (Tree [
+                Node "nested" [] (Tree [])
+              ])
+            , Node "meta" [] (Tree [])
+            ])
+          , Node "body" [] (Tree [
+              Node "div" [] (Tree [])
+            ])
           ]

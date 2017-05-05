@@ -62,7 +62,7 @@ test-suite spec
       Parser.AttributesSpec
       Parser.CommentsSpec
       Parser.EmbeddedCodeSpec
+      Parser.NodesSpec
       Parser.TextSpec
-      ParserSpec
       Parser
   default-language: Haskell2010
