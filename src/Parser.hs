@@ -45,7 +45,7 @@ module Parser where
   htmlNode = L.indentBlock scn $ do
     name <- htmlEntityName
     shorthandAttrs <- many (dotClass <|> hashId)
-    attrs <- (shorthandAttrs ++) <$> attribute `sepBy` spaceOrTab
+    attrs <- (shorthandAttrs ++) <$> attributes
     return $ L.IndentMany Nothing (return . Node name attrs . Tree) node
 
   codeNode :: Parser Node
@@ -87,12 +87,22 @@ module Parser where
   restOfLine :: Parser String
   restOfLine = optional spaceOrTab >> anyChar `manyTill` lookAhead newline
 
-  attribute :: Parser Attr
-  attribute = do
-    name <- htmlEntityName
-    _ <- char '='
-    content <- quotedString
-    return $ Attr (name, content)
+  attributes :: Parser [Attr]
+  attributes = between (symbol "(") (symbol ")") multilineAttrs
+           <|> between (symbol "[") (symbol "]") multilineAttrs
+           <|> between (symbol "{") (symbol "}") multilineAttrs
+           <|> inlineAttrs
+    where
+      multilineAttrs :: Parser [Attr]
+      multilineAttrs = attr
+        (lexeme (char '=') *> quotedString <|> pure "")
+        `sepBy` many spaceChar
+      inlineAttrs :: Parser [Attr]
+      inlineAttrs = attr
+        (lexeme (char '=') *> quotedString)
+        `sepBy` many spaceOrTab
+      attr :: Parser String -> Parser Attr
+      attr value = Attr <$> ((,) <$> htmlEntityName <*> value)
 
   dotClass :: Parser Attr
   dotClass = do
@@ -110,11 +120,7 @@ module Parser where
   htmlEntityName = lexeme $ some (alphaNumChar <|> char '_' <|> char '-')
 
   quotedString :: Parser String
-  quotedString = do
-    _ <- char '"'
-    str <- many quotedChar
-    _ <- char '"'
-    return str
+  quotedString = lexeme $ char '"' *> (many quotedChar) <* char '"'
     where
       quotedChar :: Parser Char
       quotedChar = unescaped <|> escaped
@@ -122,6 +128,9 @@ module Parser where
       unescaped = noneOf "\\\""
       escaped :: Parser Char
       escaped = char '\\' >> oneOf "\\\""
+
+  symbol :: String -> Parser String
+  symbol = L.symbol sc
 
   lexeme :: Parser a -> Parser a
   lexeme = L.lexeme sc
