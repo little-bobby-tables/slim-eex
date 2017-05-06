@@ -45,8 +45,15 @@ module Parser where
   htmlNode = L.indentBlock scn $ do
     name <- htmlEntityName
     shorthandAttrs <- many (dotClass <|> hashId)
-    attrs <- (shorthandAttrs ++) <$> attributes
-    return $ L.IndentMany Nothing (pure . Node name attrs . Tree) node
+    attrs <- (shorthandAttrs ++) <$> (attributes <|> pure [])
+    text <- nodeText
+    return $ L.IndentMany Nothing
+      ((Node name attrs <$>) . (pure . Tree . (text ++))) node
+      where
+        nodeText :: Parser [Node]
+        nodeText = (pure . VerbatimTextNode)
+            <$> (noneOf "\n") `someTill` lookAhead newline
+          <|> pure mempty
 
   codeNode :: Parser Node
   codeNode = L.indentBlock scn $ do
@@ -94,8 +101,8 @@ module Parser where
         (lexeme (char '=') *> quotedString <|> pure "")
         `sepBy` many spaceChar
       inlineAttrs :: Parser [Attr]
-      inlineAttrs = attr
-        (lexeme (char '=') *> quotedString)
+      inlineAttrs = try (attr
+        (lexeme (char '=') *> quotedString))
         `sepBy` many spaceOrTab
       attr :: Parser String -> Parser Attr
       attr value = Attr <$> ((,) <$> htmlEntityName <*> value)

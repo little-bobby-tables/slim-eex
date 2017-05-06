@@ -1,7 +1,7 @@
 {-# LANGUAGE QuasiQuotes, OverloadedStrings #-}
 
 module Parser.TextSpec where
-  import Parser (Tree(..), Node(..), slim)
+  import Parser (Tree(..), Node(..), Attr(..), slim)
 
   import Test.Hspec
   import Test.Hspec.Megaparsec
@@ -10,12 +10,31 @@ module Parser.TextSpec where
 
   import Data.Text (unpack)
   import NeatInterpolation (text)
- 
+
   main :: IO ()
   main = hspec spec
 
   spec :: Spec
   spec = do
+    describe "text content" $ do
+      it "can begin on the same line as node definition" $ do
+        parse slim "<source>" (unpack [text|
+        p Come along
+          div.child
+        div.class attr="attr" with me
+        |]) `shouldParse`
+          Tree [
+            Node "p" [] (Tree [
+              VerbatimTextNode "Come along"
+            , Node "div" [Attr ("class", "child")] (Tree [])
+            ])
+          , Node "div" [
+              Attr ("class", "class")
+            , Attr ("attr", "attr")] (Tree [
+              VerbatimTextNode "with me"
+            ])
+          ]
+
     describe "verbatim text node - |" $ do
       it "converts indentation to spaces" $ do
         parse slim "<source>" (unpack [text|
