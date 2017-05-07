@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies, TupleSections #-}
+{-# LANGUAGE TypeFamilies, TupleSections, ScopedTypeVariables #-}
 
 module Parser where
   import Control.Applicative (empty)
@@ -43,22 +43,20 @@ module Parser where
 
   htmlNode :: Parser Node
   htmlNode = L.indentBlock scn $ do
-    name <- htmlEntityName
-    shorthandAttrs <- many (dotClass <|> hashId)
-    attrs <- (shorthandAttrs ++) <$> (attributes <|> pure [])
-    text <- nodeText
-    return $ L.IndentMany Nothing
-      ((Node name attrs <$>) . (pure . Tree . (text ++))) node
+    topNode <- Node <$> htmlEntityName <*> attrs
+    nodeText <- optionalText
+    return $ (pure . topNode . Tree . (nodeText ++)) `manyIndented` node
       where
-        nodeText :: Parser [Node]
-        nodeText = (pure . VerbatimTextNode)
-            <$> (noneOf "\n") `someTill` lookAhead newline
-          <|> pure mempty
+        attrs = (++) <$> shorthandAttributes <*> attributes
+        shorthandAttributes = many (dotClass <|> hashId)
+        optionalText :: Parser [Node] =
+          (pure . VerbatimTextNode) <$> untilNewline <|> pure mempty
+        untilNewline = (noneOf "\n") `someTill` lookAhead newline
 
   codeNode :: Parser Node
   codeNode = L.indentBlock scn $ do
     code <- embeddedCode
-    return $ L.IndentMany Nothing (pure . EmbeddedCodeNode code . Tree) node
+    return $ (pure . EmbeddedCodeNode code . Tree) `manyIndented` node
 
   embeddedCode :: Parser EmbeddedCode
   embeddedCode = ControlCode   <$> (char '-' *> restOfLine)
@@ -124,6 +122,9 @@ module Parser where
         where
           unescaped = noneOf "\\\""
           escaped = char '\\' *> oneOf "\\\""
+
+  manyIndented :: ([b] -> Parser a) -> Parser b -> L.IndentOpt Parser a b
+  manyIndented = L.IndentMany Nothing
 
   symbol :: String -> Parser String
   symbol = L.symbol sc
