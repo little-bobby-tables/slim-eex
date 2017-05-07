@@ -94,15 +94,12 @@ module Parser where
            <|> between (symbol "{") (symbol "}") multilineAttrs
            <|> inlineAttrs
     where
-      multilineAttrs :: Parser [Attr]
-      multilineAttrs = attr
-        (lexeme (char '=') *> quotedString <|> pure "")
+      multilineAttrs :: Parser [Attr] =
+        attr (lexeme (char '=') *> quotedString <|> pure "")
         `sepBy` many spaceChar
-      inlineAttrs :: Parser [Attr]
-      inlineAttrs = try (attr
-        (lexeme (char '=') *> quotedString))
+      inlineAttrs :: Parser [Attr] =
+        try (attr (lexeme (char '=') *> quotedString))
         `sepBy` many spaceOrTab
-      attr :: Parser String -> Parser Attr
       attr value = Attr <$> ((,) <$> htmlEntityName <*> value)
 
   dotClass :: Parser Attr
@@ -117,11 +114,10 @@ module Parser where
   quotedString :: Parser String
   quotedString = lexeme $ char '"' *> many quotedChar <* char '"'
     where
-      quotedChar :: Parser Char
-      quotedChar = unescaped <|> escaped
-        where
-          unescaped = noneOf "\\\""
-          escaped = char '\\' *> oneOf "\\\""
+      quotedChar :: Parser Char =
+        unescaped <|> escaped
+      unescaped = noneOf "\\\""
+      escaped = char '\\' *> oneOf "\\\""
 
   manyIndented :: ([b] -> Parser a) -> Parser b -> L.IndentOpt Parser a b
   manyIndented = L.IndentMany Nothing
