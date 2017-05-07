@@ -74,16 +74,16 @@ module Parser where
   textBlock :: String -> Parser String
   textBlock separator = do
     separatorIndent <- string separator *> L.indentLevel
-    textIndent <- (\leadingNewlines spaces ->
-      if leadingNewlines
-        then spaces
-        else (spaces - 1) + fromIntegral (unPos separatorIndent))
-      <$> ((> 0) . length <$> many newline)
-      <*> (length <$> many spaceOrTab)
+    textIndent <- leadingNewlines *> whitespaceLength
+              <|> addIndent separatorIndent <$> whitespaceLength
     firstLine <- anyChar `manyTill` newline
-    indentedLines <- splitOn "\n"
-      <$> anyChar `manyTill` try (L.indentGuard scn LT separatorIndent)
+    indentedLines <- splitOn "\n" <$> indentedBy separatorIndent
     return $ firstLine ++ (drop textIndent =<< indentedLines)
+    where
+      leadingNewlines = some newline
+      whitespaceLength = length <$> many spaceOrTab
+      addIndent = (+) . subtract 1 . fromIntegral . unPos
+      indentedBy = (anyChar `manyTill`) . try . (L.indentGuard scn LT)
 
   restOfLine :: Parser String
   restOfLine = optional spaceOrTab *> anyChar `manyTill` lookAhead newline

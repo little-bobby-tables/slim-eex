@@ -2,18 +2,18 @@
 
 module Parser.CommentsSpec where
   import Parser (Tree(..), Node(..), Attr(..), Comment(..), slim)
- 
+
   import Test.Hspec
   import Test.Hspec.Megaparsec
- 
+
   import Text.Megaparsec (parse)
- 
+
   import Data.Text (unpack)
   import NeatInterpolation (text)
- 
+
   main :: IO ()
   main = hspec spec
- 
+
   spec :: Spec
   spec = do
     describe "html comment node - \\!" $ do
@@ -23,9 +23,8 @@ module Parser.CommentsSpec where
             have similar semantics to other text blocks:
               they support nesting, with indentation being converted to spaces
         div
-          \!
-             You can
-              start them
+          \!You can
+             start them
           \!
             On
               another line
@@ -39,7 +38,7 @@ module Parser.CommentsSpec where
             , CommentNode (HtmlComment "On  another line")
             ])
           ]
- 
+
     describe "slim comment node - \\" $ do
       it "has similar semantics to other text blocks" $ do
         parse slim "<source>" (unpack [text|
@@ -50,7 +49,8 @@ module Parser.CommentsSpec where
              div.i-dont-need-this
                | I don't need this either
         div.uncommented
-          \ Comment
+          \Commen
+           t
         |]) `shouldParse`
           Tree [
             CommentNode (SlimComment "Comments")
