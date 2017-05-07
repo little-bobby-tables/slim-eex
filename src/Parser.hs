@@ -44,14 +44,19 @@ module Parser where
   htmlNode :: Parser Node
   htmlNode = L.indentBlock scn $ do
     topNode <- Node <$> htmlEntityName <*> attrs
-    nodeText <- optionalText
-    return $ (pure . topNode . Tree . (nodeText ++)) `manyIndented` node
+    inlineContent <- inlineNodeContent
+    return $ (pure . topNode . Tree . (inlineContent ++)) `manyIndented` node
       where
         attrs = (++) <$> shorthandAttributes <*> attributes
         shorthandAttributes = many (dotClass <|> hashId)
-        optionalText :: Parser [Node] =
-          (pure . VerbatimTextNode) <$> untilNewline <|> pure mempty
-        untilNewline = (noneOf "\n") `someTill` lookAhead newline
+
+  inlineNodeContent :: Parser [Node]
+  inlineNodeContent =
+    (pure . (flip EmbeddedCodeNode) (Tree [])) <$> embeddedCode
+    <|> (pure . VerbatimTextNode) <$> untilNewline
+    <|> (pure mempty)
+    where
+      untilNewline = (noneOf "\n") `someTill` lookAhead newline
 
   codeNode :: Parser Node
   codeNode = L.indentBlock scn $ do
