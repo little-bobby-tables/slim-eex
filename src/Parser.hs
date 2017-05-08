@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies, TupleSections, ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies, ScopedTypeVariables #-}
 
 module Parser where
   import Control.Applicative (empty)
@@ -17,7 +17,12 @@ module Parser where
             | CommentNode Comment
     deriving (Eq, Show)
 
-  newtype Attr = Attr (String, String) deriving (Eq, Show)
+  data Attr = EscapedCodeAttr String String
+            | UnescapedCodeAttr String String
+            | EscapedAttr String String
+            | UnescapedAttr String String
+            | BooleanAttr String
+    deriving (Eq, Show)
 
   data EmbeddedCode = ControlCode String
                     | EscapedCode String
@@ -100,21 +105,41 @@ module Parser where
            <|> inlineAttrs
     where
       multilineAttrs :: Parser [Attr] =
-        attr (lexeme (char '=') *> quotedString <|> pure "")
+        (htmlEntityName >>= \n -> (attribute n <|> (pure . BooleanAttr) n))
         `sepBy` many spaceChar
       inlineAttrs :: Parser [Attr] =
-        try (attr (lexeme (char '=') *> quotedString))
-        `sepBy` many spaceOrTab
-      attr value = Attr <$> ((,) <$> htmlEntityName <*> value)
+        try (htmlEntityName >>= attribute) `sepBy` many spaceOrTab
 
   dotClass :: Parser Attr
-  dotClass = (Attr . ("class",)) <$> (char '.' *> htmlEntityName)
+  dotClass = (EscapedAttr "class") <$> (char '.' *> htmlEntityName)
 
   hashId :: Parser Attr
-  hashId = (Attr . ("id",)) <$> (char '#' *> htmlEntityName)
+  hashId = (EscapedAttr "id") <$> (char '#' *> htmlEntityName)
 
   htmlEntityName :: Parser String
   htmlEntityName = lexeme $ some (alphaNumChar <|> char '_' <|> char '-')
+
+  attribute :: String -> Parser Attr
+  attribute name =
+    string "==" *>
+      (UnescapedAttr name <$> quotedString
+      <|> UnescapedCodeAttr name <$> inlineCode)
+    <|> char '=' *>
+      (EscapedAttr name <$> quotedString
+      <|> EscapedCodeAttr name <$> inlineCode)
+
+  inlineCode :: Parser String
+  inlineCode = lexeme $ concatSome (unterminatedLine
+    <|> inside '(' ')' <|> inside '{' '}' <|> inside '[' ']')
+    where
+      unterminatedLine = some (noneOf "\" \t\n(){}[]")
+      concatSome = (concat <$>) . some
+      inside :: Char -> Char -> Parser String
+      inside o c = do
+        oc <- char o
+        t <- concatSome (some (noneOf [o, c]) <|> inside o c)
+        cc <- char c
+        return (oc : (t ++ [cc]))
 
   quotedString :: Parser String
   quotedString = lexeme $ char '"' *> many quotedChar <* char '"'

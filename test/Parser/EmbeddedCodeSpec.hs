@@ -2,18 +2,18 @@
 
 module Parser.EmbeddedCodeSpec where
   import Parser (Tree(..), Node(..), Attr(..), EmbeddedCode(..), slim)
- 
+
   import Test.Hspec
   import Test.Hspec.Megaparsec
- 
+
   import Text.Megaparsec (parse)
- 
+
   import Data.Text (unpack)
   import NeatInterpolation (text)
- 
+
   main :: IO ()
   main = hspec spec
- 
+
   spec :: Spec
   spec = do
     describe "embedded code" $ do
@@ -32,7 +32,7 @@ module Parser.EmbeddedCodeSpec where
               (ControlCode "cond = true") (Tree [])
           , EmbeddedCodeNode
               (EscapedCode "if cond do") (Tree [
-                Node "div" [Attr ("data-cond", "true")]
+                Node "div" [EscapedAttr "data-cond" "true"]
                   (Tree [
                     EmbeddedCodeNode
                       (UnescapedCode "\"<script>unescaped()</script>\"") (Tree [])

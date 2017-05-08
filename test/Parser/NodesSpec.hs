@@ -48,12 +48,12 @@ module Parser.NodesSpec where
           Tree [
             Node "p" [] (Tree [
               VerbatimTextNode "Come along"
-            , Node "div" [Attr ("class", "child")] (Tree [])
+            , Node "div" [EscapedAttr "class" "child"] (Tree [])
             ])
           , Node "div" [
-              Attr ("class", "class")
-            , Attr ("attr", "attr")] (Tree [
-              VerbatimTextNode "with me"
+              EscapedAttr "class" "class"
+            , EscapedAttr "attr" "attr"] (Tree [
+                VerbatimTextNode "with me"
             ])
           ]
 

@@ -56,7 +56,7 @@ module Parser.CommentsSpec where
             CommentNode (SlimComment "Comments")
           , CommentNode (SlimComment "Comment Indented comment\
             \   div.i-dont-need-this     | I don't need this either")
-          , Node "div" [Attr ("class", "uncommented")] (Tree [
+          , Node "div" [EscapedAttr "class" "uncommented"] (Tree [
               CommentNode (SlimComment "Comment")
             ])
           ]
