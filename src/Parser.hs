@@ -1,13 +1,11 @@
 {-# LANGUAGE TypeFamilies, ScopedTypeVariables #-}
 
 module Parser where
-  import Control.Applicative (empty)
-  import Control.Monad (void)
+  import Parser.Internal
+
   import Text.Megaparsec
   import Text.Megaparsec.String
   import qualified Text.Megaparsec.Lexer as L
-
-  import Data.List.Split (splitOn)
 
   newtype Tree = Tree [Node] deriving (Eq, Show)
 
@@ -37,7 +35,7 @@ module Parser where
   slim = tree <* eof
 
   tree :: Parser Tree
-  tree = Tree <$> many (L.nonIndented scn node)
+  tree = Tree <$> many (nonIndented node)
 
   node :: Parser Node
   node = commentNode
@@ -47,7 +45,7 @@ module Parser where
         <?> "an HTML element, text, embedded code, comment"
 
   htmlNode :: Parser Node
-  htmlNode = L.indentBlock scn $ do
+  htmlNode = indentBlock $ do
     topNode <- Node <$> htmlEntityName <*> attrs
     inlineContent <- inlineNodeContent
     return $ (pure . topNode . Tree . (inlineContent ++)) `manyIndented` node
@@ -64,7 +62,7 @@ module Parser where
       untilNewline = (noneOf "\n") `someTill` lookAhead newline
 
   codeNode :: Parser Node
-  codeNode = L.indentBlock scn $ do
+  codeNode = indentBlock $ do
     code <- embeddedCode
     return $ (pure . EmbeddedCodeNode code . Tree) `manyIndented` node
 
@@ -80,23 +78,6 @@ module Parser where
   commentNode = CommentNode <$> (
         HtmlComment <$> textBlock "\\!"
     <|> SlimComment <$> textBlock "\\")
-
-  textBlock :: String -> Parser String
-  textBlock separator = do
-    separatorIndent <- string separator *> L.indentLevel
-    textIndent <- leadingNewlines *> whitespaceLength
-              <|> addIndent separatorIndent <$> whitespaceLength
-    firstLine <- anyChar `manyTill` newline
-    indentedLines <- splitOn "\n" <$> indentedBy separatorIndent
-    return $ firstLine ++ (drop textIndent =<< indentedLines)
-    where
-      leadingNewlines = some newline
-      whitespaceLength = length <$> many spaceOrTab
-      addIndent = (+) . subtract 1 . fromIntegral . unPos
-      indentedBy = (anyChar `manyTill`) . try . (L.indentGuard scn LT)
-
-  restOfLine :: Parser String
-  restOfLine = optional spaceOrTab *> anyChar `manyTill` lookAhead newline
 
   attributes :: Parser [Attr]
   attributes = between (symbol "(") (symbol ")") multilineAttrs
@@ -140,29 +121,3 @@ module Parser where
         t <- concatSome (some (noneOf [o, c]) <|> inside o c)
         cc <- char c
         return (oc : (t ++ [cc]))
-
-  quotedString :: Parser String
-  quotedString = lexeme $ char '"' *> many quotedChar <* char '"'
-    where
-      quotedChar :: Parser Char =
-        unescaped <|> escaped
-      unescaped = noneOf "\\\""
-      escaped = char '\\' *> oneOf "\\\""
-
-  manyIndented :: ([b] -> Parser a) -> Parser b -> L.IndentOpt Parser a b
-  manyIndented = L.IndentMany Nothing
-
-  symbol :: String -> Parser String
-  symbol = L.symbol sc
-
-  lexeme :: Parser a -> Parser a
-  lexeme = L.lexeme sc
-
-  sc :: Parser ()
-  sc = L.space (void spaceOrTab) empty empty
-
-  scn :: Parser ()
-  scn = L.space (void spaceChar) empty empty
-
-  spaceOrTab :: Parser Char
-  spaceOrTab = oneOf " \t"
