@@ -2,7 +2,7 @@
 
 module Parser.Internal
   (textBlock, quotedString, restOfLine,
-   nonIndented, indentBlock, manyIndented,
+   nonIndented, indentBlock, manyIndented, indentedBy,
    symbol, lexeme, spaceOrTab) where
 
   import Control.Applicative (empty)
@@ -26,14 +26,21 @@ module Parser.Internal
     separatorIndent <- string separator *> L.indentLevel
     textIndent <- leadingNewlines *> whitespaceLength
               <|> addIndent separatorIndent <$> whitespaceLength
-    firstLine <- anyChar `manyTill` newline
-    indentedLines <- splitOn "\n" <$> indentedBy separatorIndent
-    return $ firstLine ++ (drop textIndent =<< indentedLines)
+    (++) <$> anyChar `manyTill` newline
+         <*> (anyChar `indentedBy` separatorIndent) `strippedOff` textIndent
     where
       leadingNewlines = some newline
-      whitespaceLength = length <$> many spaceOrTab
       addIndent = (+) . subtract 1 . fromIntegral . unPos
-      indentedBy = (anyChar `manyTill`) . try . (L.indentGuard scn LT)
+
+  strippedOff :: Parser String -> Int -> Parser String
+  strippedOff text whitespace =
+    (drop whitespace =<<) <$> splitOn "\n" <$> text
+
+  whitespaceLength :: Parser Int
+  whitespaceLength = length <$> many spaceOrTab
+
+  indentedBy :: Parser a -> Pos -> Parser [a]
+  indentedBy a = (a `manyTill`) . try . (L.indentGuard scn LT)
 
   -- A quoted string (without quotes), which may contain escape
   -- sequences (e.g. "\"string\"").
