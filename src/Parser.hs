@@ -13,6 +13,7 @@ module Parser where
             | EmbeddedCodeNode EmbeddedCode Tree
             | VerbatimTextNode String
             | CommentNode Comment
+            | EmbeddedEngineNode String String
     deriving (Eq, Show)
 
   data Attr = EscapedCodeAttr String String
@@ -39,6 +40,7 @@ module Parser where
 
   node :: Parser Node
   node = commentNode
+        <|> embeddedEngineNode
         <|> codeNode
         <|> htmlNode
         <|> verbatimTextNode
@@ -78,6 +80,16 @@ module Parser where
   commentNode = CommentNode <$> (
         HtmlComment <$> textBlock "\\!"
     <|> SlimComment <$> textBlock "\\")
+
+  embeddedEngineNode :: Parser Node
+  embeddedEngineNode = do
+    topIndent <- L.indentLevel
+    try $ EmbeddedEngineNode
+      <$> some letterChar
+      <*> (char ':' *> newline *>
+            (((anyChar `indentedBy` topIndent) `strippedOff`) =<< whitespace))
+    where
+      whitespace = length <$> lookAhead (many spaceOrTab)
 
   attributes :: Parser [Attr]
   attributes = between (symbol "(") (symbol ")") multilineAttrs

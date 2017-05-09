@@ -2,7 +2,8 @@
 
 module Parser.Internal
   (textBlock, quotedString, restOfLine,
-   nonIndented, indentBlock, manyIndented, indentedBy,
+   nonIndented, indentBlock, manyIndented,
+   strippedOff, whitespaceLength, indentedBy,
    symbol, lexeme, spaceOrTab) where
 
   import Control.Applicative (empty)
@@ -11,7 +12,7 @@ module Parser.Internal
   import Text.Megaparsec.String
   import qualified Text.Megaparsec.Lexer as L
 
-  import Data.List.Split (splitOn)
+  import Data.List.Split (split, splitOn, keepDelimsR, onSublist)
 
   -- Text blocks begin with a separator (e.g. |) and consume
   -- everything indented deeper than the separator. The distance
@@ -27,14 +28,19 @@ module Parser.Internal
     textIndent <- leadingNewlines *> whitespaceLength
               <|> addIndent separatorIndent <$> whitespaceLength
     (++) <$> anyChar `manyTill` newline
-         <*> (anyChar `indentedBy` separatorIndent) `strippedOff` textIndent
+         <*> (anyChar `indentedBy` separatorIndent)
+             `inlinedAndStrippedOff` textIndent
     where
       leadingNewlines = some newline
       addIndent = (+) . subtract 1 . fromIntegral . unPos
 
+  inlinedAndStrippedOff :: Parser String -> Int -> Parser String
+  inlinedAndStrippedOff text whitespace =
+    (drop whitespace =<<) <$> splitOn "\n" <$> text
+
   strippedOff :: Parser String -> Int -> Parser String
   strippedOff text whitespace =
-    (drop whitespace =<<) <$> splitOn "\n" <$> text
+    (drop whitespace =<<) <$> (split . keepDelimsR . onSublist) "\n" <$> text
 
   whitespaceLength :: Parser Int
   whitespaceLength = length <$> many spaceOrTab

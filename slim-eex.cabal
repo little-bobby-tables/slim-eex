@@ -63,6 +63,7 @@ test-suite spec
       Parser.AttributesSpec
       Parser.CommentsSpec
       Parser.EmbeddedCodeSpec
+      Parser.EmbeddedEnginesSpec
       Parser.NodesSpec
       Parser.TextSpec
       Parser
