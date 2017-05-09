@@ -3,7 +3,7 @@
 module Parser.Internal
   (textBlock, quotedString, restOfLine,
    nonIndented, indentBlock, manyIndented,
-   strippedOff, whitespaceLength, indentedBy,
+   inlinedAndStrippedOff, strippedOff, indentedBy,
    symbol, lexeme, spaceOrTab) where
 
   import Control.Applicative (empty)
@@ -32,6 +32,7 @@ module Parser.Internal
              `inlinedAndStrippedOff` textIndent
     where
       leadingNewlines = some newline
+      whitespaceLength = length <$> many spaceOrTab
       addIndent = (+) . subtract 1 . fromIntegral . unPos
 
   inlinedAndStrippedOff :: Parser String -> Int -> Parser String
@@ -41,9 +42,6 @@ module Parser.Internal
   strippedOff :: Parser String -> Int -> Parser String
   strippedOff text whitespace =
     (drop whitespace =<<) <$> (split . keepDelimsR . onSublist) "\n" <$> text
-
-  whitespaceLength :: Parser Int
-  whitespaceLength = length <$> many spaceOrTab
 
   indentedBy :: Parser a -> Pos -> Parser [a]
   indentedBy a = (a `manyTill`) . try . (L.indentGuard scn LT)

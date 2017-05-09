@@ -16,6 +16,19 @@ module Parser.AttributesSpec where
 
   spec :: Spec
   spec = do
+    describe "naming" $ do
+      it "may contain a number of special characters" $ do
+        parse slim "<source>" (unpack [text|
+        button v-on:click="myfunc"
+        button(@click="myfunc")
+        |]) `shouldParse`
+          Tree [
+            Node "button" [
+              EscapedAttr "v-on:click" "myfunc"] (Tree [])
+          , Node "button" [
+              EscapedAttr "@click" "myfunc"] (Tree [])
+          ]
+
     describe "string attributes" $ do
       it "may contain escape sequences" $ do
         parse slim "<source>" (unpack [text|

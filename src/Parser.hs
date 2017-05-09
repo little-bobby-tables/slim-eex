@@ -48,7 +48,7 @@ module Parser where
 
   htmlNode :: Parser Node
   htmlNode = indentBlock $ do
-    topNode <- Node <$> htmlEntityName <*> attrs
+    topNode <- Node <$> elementName <*> attrs
     inlineContent <- inlineNodeContent
     return $ (pure . topNode . Tree . (inlineContent ++)) `manyIndented` node
       where
@@ -98,19 +98,32 @@ module Parser where
            <|> inlineAttrs
     where
       multilineAttrs :: Parser [Attr] =
-        (htmlEntityName >>= \n -> (attribute n <|> (pure . BooleanAttr) n))
+        (attributeName >>= \n -> (attribute n <|> (pure . BooleanAttr) n))
         `sepBy` many spaceChar
       inlineAttrs :: Parser [Attr] =
-        try (htmlEntityName >>= attribute) `sepBy` many spaceOrTab
+        try (attributeName >>= attribute) `sepBy` many spaceOrTab
 
   dotClass :: Parser Attr
-  dotClass = (EscapedAttr "class") <$> (char '.' *> htmlEntityName)
+  dotClass = (EscapedAttr "class") <$> (char '.' *> shorthandName)
 
   hashId :: Parser Attr
-  hashId = (EscapedAttr "id") <$> (char '#' *> htmlEntityName)
+  hashId = (EscapedAttr "id") <$> (char '#' *> shorthandName)
 
-  htmlEntityName :: Parser String
-  htmlEntityName = lexeme $ some (alphaNumChar <|> char '_' <|> char '-')
+  -- Name     ::= (Letter | '_' | ':') (NameChar)*
+  -- NameChar	::= Letter | Digit | '.' | '-' | '_' | ':'
+  --
+  -- Note that we can't use dots in element names;
+  -- they're reserved for Slim's attribute shorthand notation.
+  elementName :: Parser String
+  elementName = lexeme $
+    (:) <$> (letterChar <|> oneOf "_:")
+        <*> many (alphaNumChar <|> oneOf "-_:")
+
+  attributeName :: Parser String
+  attributeName = lexeme $ some (alphaNumChar <|> oneOf "@-_:")
+
+  shorthandName :: Parser String
+  shorthandName = lexeme $ some (alphaNumChar <|> oneOf "_-")
 
   attribute :: String -> Parser Attr
   attribute name =
