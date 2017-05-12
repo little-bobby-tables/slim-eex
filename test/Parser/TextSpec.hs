@@ -35,16 +35,16 @@ module Parser.TextSpec where
               One space.
         |]) `shouldParse`
           Tree [
-            Node "p" [] (Tree [
+            HtmlNode "p" [] (Tree [
               VerbatimTextNode "HeadNo spaces in front of the line\
                 \. One space in front it.  Two spaces in front of it\
                 \.     Five spaces in front of it\
                 \. One space."
             ])
-          , Node "p" [] (Tree [
+          , HtmlNode "p" [] (Tree [
               VerbatimTextNode "HeadNo spaces. One space."
             ])
-          , Node "p" [] (Tree [
+          , HtmlNode "p" [] (Tree [
               VerbatimTextNode "Head One space."
             ])
           ]
@@ -63,7 +63,7 @@ module Parser.TextSpec where
               Two spaces.
         |]) `shouldParse`
           Tree [
-            Node "p" [] (Tree [
+            HtmlNode "p" [] (Tree [
               VerbatimTextNode "No spaces."
             , VerbatimTextNode "No spaces. One space."
             , VerbatimTextNode "No spaces.  Two spaces."
@@ -78,7 +78,7 @@ module Parser.TextSpec where
           | ey
         |]) `shouldParse`
           Tree [
-            Node "p" [] (Tree [
+            HtmlNode "p" [] (Tree [
               VerbatimTextNode "H"
             , WhitespaceNode
             , VerbatimTextNode "ey"

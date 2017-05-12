@@ -32,7 +32,7 @@ module Parser.EmbeddedCodeSpec where
               (ControlCode "cond = true") (Tree [])
           , EmbeddedCodeNode
               (EscapedCode "if cond do") (Tree [
-                Node "div" [EscapedAttr "data-cond" "true"]
+                HtmlNode "div" [EscapedAttr "data-cond" "true"]
                   (Tree [
                     EmbeddedCodeNode
                       (UnescapedCode "\"<script>unescaped()</script>\"") (Tree [])
@@ -40,8 +40,8 @@ module Parser.EmbeddedCodeSpec where
               ])
           , EmbeddedCodeNode
               (ControlCode "else") (Tree [
-                Node "div" [] (Tree [
-                  Node "oops" [] (Tree [])
+                HtmlNode "div" [] (Tree [
+                  HtmlNode "oops" [] (Tree [])
                 ])
               ])
           ]

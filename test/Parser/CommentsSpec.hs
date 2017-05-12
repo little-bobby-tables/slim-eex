@@ -33,7 +33,7 @@ module Parser.CommentsSpec where
             CommentNode (HtmlComment "HTML comments\
             \ have similar semantics to other text blocks:   they\
             \ support nesting, with indentation being converted to spaces")
-          , Node "div" [] (Tree [
+          , HtmlNode "div" [] (Tree [
               CommentNode (HtmlComment "You can start them")
             , CommentNode (HtmlComment "On  another line")
             ])
@@ -56,7 +56,7 @@ module Parser.CommentsSpec where
             CommentNode (SlimComment "Comments")
           , CommentNode (SlimComment "Comment Indented comment\
             \   div.i-dont-need-this     | I don't need this either")
-          , Node "div" [EscapedAttr "class" "uncommented"] (Tree [
+          , HtmlNode "div" [EscapedAttr "class" "uncommented"] (Tree [
               CommentNode (SlimComment "Comment")
             ])
           ]

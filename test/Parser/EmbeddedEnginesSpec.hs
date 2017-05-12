@@ -27,7 +27,7 @@ module Parser.EmbeddedEnginesSpec where
             };
         |]) `shouldParse`
           Tree [
-            Node "div" [] (Tree [
+            HtmlNode "div" [] (Tree [
               EmbeddedEngineNode "javascript"
               "alert(\"hello there\");\n\
               \const chopper = {\n\

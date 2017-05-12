@@ -5,7 +5,6 @@ module Parser.Whitespace where
 
   import Text.Megaparsec
   import Text.Megaparsec.String
-  import qualified Text.Megaparsec.Lexer as L
 
   data Whitespace = Leading
                   | Trailing

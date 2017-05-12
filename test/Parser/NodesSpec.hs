@@ -27,14 +27,14 @@ module Parser.NodesSpec where
           div
         |]) `shouldParse`
           Tree [
-            Node "head" [] (Tree [
-              Node "title" [] (Tree [
-                Node "nested" [] (Tree [])
+            HtmlNode "head" [] (Tree [
+              HtmlNode "title" [] (Tree [
+                HtmlNode "nested" [] (Tree [])
               ])
-            , Node "meta" [] (Tree [])
+            , HtmlNode "meta" [] (Tree [])
             ])
-          , Node "body" [] (Tree [
-              Node "div" [] (Tree [])
+          , HtmlNode "body" [] (Tree [
+              HtmlNode "div" [] (Tree [])
             ])
           ]
 
@@ -46,11 +46,11 @@ module Parser.NodesSpec where
         div.class attr="attr" with me
         |]) `shouldParse`
           Tree [
-            Node "p" [] (Tree [
+            HtmlNode "p" [] (Tree [
               VerbatimTextNode "Come along"
-            , Node "div" [EscapedAttr "class" "child"] (Tree [])
+            , HtmlNode "div" [EscapedAttr "class" "child"] (Tree [])
             ])
-          , Node "div" [
+          , HtmlNode "div" [
               EscapedAttr "class" "class"
             , EscapedAttr "attr" "attr"] (Tree [
                 VerbatimTextNode "with me"
@@ -63,9 +63,9 @@ module Parser.NodesSpec where
           span=@text
         |]) `shouldParse`
           Tree [
-            Node "p" [] (Tree [
+            HtmlNode "p" [] (Tree [
               EmbeddedCodeNode (UnescapedCode "@unescaped") (Tree [])
-            , Node "span" [] (Tree [
+            , HtmlNode "span" [] (Tree [
                 EmbeddedCodeNode (EscapedCode "@text") (Tree [])
               ])
             ])

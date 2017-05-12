@@ -28,7 +28,7 @@ module Parser ( slim
 
   htmlNode :: Parser SlimNode
   htmlNode = indentBlock $ do
-    topNode <- Node <$> elementName
+    topNode <- HtmlNode <$> elementName
     shorthands <- many (dotClass <|> hashId)
     whitespace <- slimWhitespace
     attrs <- ((++) shorthands) <$> attributes

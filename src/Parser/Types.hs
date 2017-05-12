@@ -2,7 +2,7 @@ module Parser.Types where
 
   newtype Tree = Tree [Node] deriving (Eq, Show)
 
-  data Node = Node String [Attr] Tree
+  data Node = HtmlNode String [Attr] Tree
             | EmbeddedCodeNode EmbeddedCode Tree
             | EmbeddedEngineNode String String
             | VerbatimTextNode String

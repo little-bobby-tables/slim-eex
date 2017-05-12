@@ -2,7 +2,7 @@
 
 module Parser.WhitespaceSpec where
   import Parser
-    (Tree(..), Node(..), Attr(..), EmbeddedCode(..), slim)
+    (Tree(..), Node(..), EmbeddedCode(..), slim)
 
   import Test.Hspec
   import Test.Hspec.Megaparsec
@@ -27,15 +27,15 @@ module Parser.WhitespaceSpec where
         |]) `shouldParse`
           Tree [
             WhitespaceNode
-          , Node "div" [] (Tree [
-              Node "p" [] (Tree [
+          , HtmlNode "div" [] (Tree [
+              HtmlNode "p" [] (Tree [
                 WhitespaceNode
-              , Node "a" [] (Tree [])
+              , HtmlNode "a" [] (Tree [])
               , WhitespaceNode
               ])
             , WhitespaceNode
             , WhitespaceNode
-            , Node "p" [] (Tree [])
+            , HtmlNode "p" [] (Tree [])
             , WhitespaceNode
             ])
           ]
@@ -46,7 +46,7 @@ module Parser.WhitespaceSpec where
         div =< hey("there")
         |]) `shouldParse`
           Tree [
-            Node "div" [] (Tree [
+            HtmlNode "div" [] (Tree [
               WhitespaceNode
             , EmbeddedCodeNode (EscapedCode "hey(\"there\")") (Tree [])
             ])

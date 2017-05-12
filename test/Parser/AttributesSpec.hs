@@ -23,9 +23,9 @@ module Parser.AttributesSpec where
         button(@click="myfunc")
         |]) `shouldParse`
           Tree [
-            Node "button" [
+            HtmlNode "button" [
               EscapedAttr "v-on:click" "myfunc"] (Tree [])
-          , Node "button" [
+          , HtmlNode "button" [
               EscapedAttr "@click" "myfunc"] (Tree [])
           ]
 
@@ -37,12 +37,12 @@ module Parser.AttributesSpec where
         random
         |]) `shouldParse`
           Tree [
-            Node "div" [
+            HtmlNode "div" [
               EscapedAttr "data-source" "some source"] (Tree [
-                Node "span" [
+                HtmlNode "span" [
                   EscapedAttr "data-escaped" "has \"escape \\sequences\""
                 , EscapedAttr "data-also-this" "yo"] (Tree [])])
-          , Node "random" [] (Tree [])
+          , HtmlNode "random" [] (Tree [])
           ]
 
       it "may be explicitly set to be unesaped" $ do
@@ -50,7 +50,7 @@ module Parser.AttributesSpec where
         div am=="not escaped" also-not=="escaped"
         |]) `shouldParse`
           Tree [
-            Node "div" [
+            HtmlNode "div" [
               UnescapedAttr "am" "not escaped"
             , UnescapedAttr "also-not" "escaped"] (Tree [])
           ]
@@ -62,9 +62,9 @@ module Parser.AttributesSpec where
         div ( data-something=(pseudo)[code]{that}(should be )%{ valid} )
         |]) `shouldParse`
           Tree [
-            Node "div" [EscapedCodeAttr "data-source"
+            HtmlNode "div" [EscapedCodeAttr "data-source"
               "render(value(x, (y && z)) || another_value \"h\")"] (Tree [])
-          , Node "div" [EscapedCodeAttr "data-something"
+          , HtmlNode "div" [EscapedCodeAttr "data-something"
             "(pseudo)[code]{that}(should be )%{ valid}"] (Tree [])
           ]
 
@@ -74,8 +74,8 @@ module Parser.AttributesSpec where
         div{data-something==%{:a => 1, 2 => :b}}
         |]) `shouldParse`
           Tree [
-            Node "div" [UnescapedCodeAttr "e" "render(value(x))"] (Tree [])
-          , Node "div" [UnescapedCodeAttr "data-something"
+            HtmlNode "div" [UnescapedCodeAttr "e" "render(value(x))"] (Tree [])
+          , HtmlNode "div" [UnescapedCodeAttr "data-something"
             "%{:a => 1, 2 => :b}"] (Tree [])
           ]
 
@@ -87,12 +87,12 @@ module Parser.AttributesSpec where
             and-another="value"]
           div.child
         |]) `shouldParse`
-          Tree [Node "div" [
+          Tree [HtmlNode "div" [
                   EscapedAttr "attr" "value"
                 , EscapedAttr "another" "value"
                 , EscapedAttr "yet-another" "value"
                 , EscapedAttr "and-another" "value"] (Tree [
-                    Node "div" [EscapedAttr "class" "child"] (Tree [])
+                    HtmlNode "div" [EscapedAttr "class" "child"] (Tree [])
                 ])]
 
       it "permits attributes without values" $ do
@@ -100,12 +100,12 @@ module Parser.AttributesSpec where
         div{with="value" without value also-with="value"}
           div.child
         |]) `shouldParse`
-          Tree [Node "div" [
+          Tree [HtmlNode "div" [
                   EscapedAttr "with" "value"
                 , BooleanAttr "without"
                 , BooleanAttr "value"
                 , EscapedAttr "also-with" "value"] (Tree [
-                    Node "div" [EscapedAttr "class" "child"] (Tree [])
+                    HtmlNode "div" [EscapedAttr "class" "child"] (Tree [])
                 ])]
 
       it "handles redundant whitespace" $ do
@@ -114,10 +114,10 @@ module Parser.AttributesSpec where
           another="value" )
           div.child
         |]) `shouldParse`
-          Tree [Node "div" [
+          Tree [HtmlNode "div" [
                   EscapedAttr "attr" "value"
                 , EscapedAttr "another" "value"] (Tree [
-                    Node "div" [EscapedAttr "class" "child"] (Tree [])
+                    HtmlNode "div" [EscapedAttr "class" "child"] (Tree [])
                 ])]
 
     describe "attribute shorthand parsing" $ do
@@ -125,7 +125,7 @@ module Parser.AttributesSpec where
         parse slim "<source>" (unpack [text|
         div.1_class.another-class class="yet-another-class"
         |]) `shouldParse`
-          Tree [Node "div" [
+          Tree [HtmlNode "div" [
                  EscapedAttr "class" "1_class"
                , EscapedAttr "class" "another-class"
                , EscapedAttr "class" "yet-another-class"] (Tree [])]
@@ -134,7 +134,7 @@ module Parser.AttributesSpec where
       parse slim "<source>" (unpack [text|
       span#some_id1#someid2 id="some-id3"
       |]) `shouldParse`
-        Tree [Node "span" [
+        Tree [HtmlNode "span" [
                 EscapedAttr "id" "some_id1"
               , EscapedAttr "id" "someid2"
               , EscapedAttr "id" "some-id3"] (Tree [])]
@@ -143,7 +143,7 @@ module Parser.AttributesSpec where
       parse slim "<source>" (unpack [text|
       header#combined.notation#is-also.fine class="definitely"
       |]) `shouldParse`
-        Tree [Node "header" [
+        Tree [HtmlNode "header" [
                 EscapedAttr "id" "combined"
               , EscapedAttr "class" "notation"
               , EscapedAttr "id" "is-also"
