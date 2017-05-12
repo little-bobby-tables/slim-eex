@@ -25,6 +25,7 @@ library
   ghc-options: -Wall -O2
   exposed-modules:
       Parser
+      Parser.HTML
       Parser.Internal
       Parser.Types
       Parser.Whitespace
@@ -70,6 +71,7 @@ test-suite spec
       Parser.TextSpec
       Parser.WhitespaceSpec
       Parser
+      Parser.HTML
       Parser.Internal
       Parser.Types
       Parser.Whitespace

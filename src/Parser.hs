@@ -6,6 +6,7 @@ module Parser ( slim
   import Parser.Types
   import Parser.Internal
   import Parser.Whitespace
+  import Parser.HTML
 
   import Text.Megaparsec
   import Text.Megaparsec.String
@@ -94,22 +95,6 @@ module Parser ( slim
 
   hashId :: Parser Attr
   hashId = (EscapedAttr "id") <$> (char '#' *> shorthandName)
-
-  -- Name     ::= (Letter | '_' | ':') (NameChar)*
-  -- NameChar	::= Letter | Digit | '.' | '-' | '_' | ':'
-  --
-  -- Note that we can't use dots in element names;
-  -- they're reserved for Slim's attribute shorthand notation.
-  elementName :: Parser String
-  elementName = lexeme $
-    (:) <$> (letterChar <|> oneOf "_:")
-        <*> many (alphaNumChar <|> oneOf "-_:")
-
-  attributeName :: Parser String
-  attributeName = lexeme $ some (alphaNumChar <|> oneOf "@-_:")
-
-  shorthandName :: Parser String
-  shorthandName = lexeme $ some (alphaNumChar <|> oneOf "_-")
 
   attribute :: String -> Parser Attr
   attribute name =
