@@ -69,3 +69,18 @@ module Parser.TextSpec where
             , VerbatimTextNode "No spaces.  Two spaces."
             ])
           ]
+
+    describe "verbatim text node - '" $ do
+      it "appends trailing whitespace" $ do
+        parse slim "<source>" (unpack [text|
+        p
+          ' H
+          | ey
+        |]) `shouldParse`
+          Tree [
+            Node "p" [] (Tree [
+              VerbatimTextNode "H"
+            , WhitespaceNode
+            , VerbatimTextNode "ey"
+            ])
+          ]

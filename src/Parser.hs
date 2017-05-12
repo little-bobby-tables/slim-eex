@@ -1,44 +1,25 @@
 {-# LANGUAGE TypeFamilies, ScopedTypeVariables #-}
 
-module Parser where
+module Parser ( slim
+              , module Parser.Types
+              ) where
+  import Parser.Types
   import Parser.Internal
+  import Parser.Whitespace
+
+  import Control.Monad (liftM2)
 
   import Text.Megaparsec
   import Text.Megaparsec.String
   import qualified Text.Megaparsec.Lexer as L
 
-  newtype Tree = Tree [Node] deriving (Eq, Show)
-
-  data Node = Node String [Attr] Tree
-            | EmbeddedCodeNode EmbeddedCode Tree
-            | VerbatimTextNode String
-            | CommentNode Comment
-            | EmbeddedEngineNode String String
-    deriving (Eq, Show)
-
-  data Attr = EscapedCodeAttr String String
-            | UnescapedCodeAttr String String
-            | EscapedAttr String String
-            | UnescapedAttr String String
-            | BooleanAttr String
-    deriving (Eq, Show)
-
-  data EmbeddedCode = ControlCode String
-                    | EscapedCode String
-                    | UnescapedCode String
-    deriving (Eq, Show)
-
-  data Comment = SlimComment String
-               | HtmlComment String
-    deriving (Eq, Show)
-
   slim :: Parser Tree
   slim = tree <* eof
 
   tree :: Parser Tree
-  tree = Tree <$> many (nonIndented node)
+  tree = slimTree <$> (many . nonIndented) node
 
-  node :: Parser Node
+  node :: Parser SlimNode
   node = commentNode
         <|> embeddedEngineNode
         <|> codeNode
@@ -46,48 +27,56 @@ module Parser where
         <|> verbatimTextNode
         <?> "an HTML element, text, embedded code, comment"
 
-  htmlNode :: Parser Node
+  htmlNode :: Parser SlimNode
   htmlNode = indentBlock $ do
-    topNode <- Node <$> elementName <*> attrs
+    topNode <- Node <$> elementName
+    shorthands <- many (dotClass <|> hashId)
+    whitespace <- slimWhitespace
+    attrs <- ((++) shorthands) <$> attributes
     inlineContent <- inlineNodeContent
-    return $ (pure . topNode . Tree . (inlineContent ++)) `manyIndented` node
-      where
-        attrs = (++) <$> shorthandAttributes <*> attributes
-        shorthandAttributes = many (dotClass <|> hashId)
+    return $ (pure . (slimNode whitespace) . (topNode attrs) .
+      slimTree . (inlineContent ++)) `manyIndented` node
 
-  inlineNodeContent :: Parser [Node]
+  inlineNodeContent :: Parser [SlimNode]
   inlineNodeContent =
-    (pure . (flip EmbeddedCodeNode) (Tree [])) <$> embeddedCode
-    <|> (pure . VerbatimTextNode) <$> untilNewline
+    pure <$> (embeddedCode >>=
+      \(w, c) -> pure $ slimNode w (EmbeddedCodeNode c (Tree [])))
+    <|> (pure . (slimNode NoWhitespace) . VerbatimTextNode) <$> untilNewline
     <|> (pure mempty)
     where
       untilNewline = (noneOf "\n") `someTill` lookAhead newline
 
-  codeNode :: Parser Node
+  codeNode :: Parser SlimNode
   codeNode = indentBlock $ do
-    code <- embeddedCode
-    return $ (pure . EmbeddedCodeNode code . Tree) `manyIndented` node
+    (w, c) <- embeddedCode
+    pure ((pure . (slimNode w) .
+      (EmbeddedCodeNode c) . slimTree) `manyIndented` node)
 
-  embeddedCode :: Parser EmbeddedCode
-  embeddedCode = ControlCode   <$> (char '-' *> restOfLine)
-             <|> UnescapedCode <$> (string "==" *> restOfLine)
-             <|> EscapedCode   <$> (char '=' *> restOfLine)
+  embeddedCode :: Parser (Whitespace, EmbeddedCode)
+  embeddedCode =
+        (char '-'    *> mseq (slimWhitespace, (ControlCode <$> restOfLine)))
+    <|> (string "==" *> mseq (slimWhitespace, (UnescapedCode <$> restOfLine)))
+    <|> (char '='    *> mseq (slimWhitespace, (EscapedCode <$> restOfLine)))
+    where
+      mseq = uncurry (liftM2 (,))
 
-  verbatimTextNode :: Parser Node
-  verbatimTextNode = VerbatimTextNode <$> textBlock "|"
+  verbatimTextNode :: Parser SlimNode
+  verbatimTextNode =
+    (slimNode NoWhitespace) <$> VerbatimTextNode <$> textBlock "|"
+    <|> (slimNode Trailing) <$> VerbatimTextNode <$> textBlock "'"
 
-  commentNode :: Parser Node
-  commentNode = CommentNode <$> (
-        HtmlComment <$> textBlock "\\!"
-    <|> SlimComment <$> textBlock "\\")
+  commentNode :: Parser SlimNode
+  commentNode = (slimNode NoWhitespace) <$> CommentNode
+    <$> (HtmlComment <$> textBlock "\\!"
+    <|>  SlimComment <$> textBlock "\\")
 
-  embeddedEngineNode :: Parser Node
+  embeddedEngineNode :: Parser SlimNode
   embeddedEngineNode = do
     topIndent <- L.indentLevel
-    try $ EmbeddedEngineNode
+    try $ (slimNode NoWhitespace) <$> (EmbeddedEngineNode
       <$> some letterChar
       <*> (char ':' *> newline *>
-            (((anyChar `indentedBy` topIndent) `strippedOff`) =<< whitespace))
+            (((anyChar `indentedBy` topIndent) `strippedOff`) =<< whitespace)))
     where
       whitespace = length <$> lookAhead (many spaceOrTab)
 
