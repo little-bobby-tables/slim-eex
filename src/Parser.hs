@@ -7,8 +7,6 @@ module Parser ( slim
   import Parser.Internal
   import Parser.Whitespace
 
-  import Control.Monad (liftM2)
-
   import Text.Megaparsec
   import Text.Megaparsec.String
   import qualified Text.Megaparsec.Lexer as L
@@ -39,26 +37,25 @@ module Parser ( slim
 
   inlineNodeContent :: Parser [SlimNode]
   inlineNodeContent =
-    pure <$> (embeddedCode >>=
-      \(w, c) -> pure $ slimNode w (EmbeddedCodeNode c (Tree [])))
+        (pure <$> (embeddedCode >>= ($ mempty)))
     <|> (pure . (slimNode NoWhitespace) . VerbatimTextNode) <$> untilNewline
     <|> (pure mempty)
     where
       untilNewline = (noneOf "\n") `someTill` lookAhead newline
 
   codeNode :: Parser SlimNode
-  codeNode = indentBlock $ do
-    (w, c) <- embeddedCode
-    pure ((pure . (slimNode w) .
-      (EmbeddedCodeNode c) . slimTree) `manyIndented` node)
+  codeNode = indentBlock $
+    pure . (`manyIndented` node) =<< embeddedCode
 
-  embeddedCode :: Parser (Whitespace, EmbeddedCode)
+  embeddedCode :: Parser ([SlimNode] -> Parser SlimNode)
   embeddedCode =
-        (char '-'    *> mseq (slimWhitespace, (ControlCode <$> restOfLine)))
-    <|> (string "==" *> mseq (slimWhitespace, (UnescapedCode <$> restOfLine)))
-    <|> (char '='    *> mseq (slimWhitespace, (EscapedCode <$> restOfLine)))
+        (char '-'    *> (whitespacedCode (ControlCode <$> restOfLine)))
+    <|> (string "==" *> (whitespacedCode (UnescapedCode <$> restOfLine)))
+    <|> (char '='    *> (whitespacedCode (EscapedCode <$> restOfLine)))
     where
-      mseq = uncurry (liftM2 (,))
+      whitespacedCode = (code <$> (slimWhitespace) <*>)
+      code :: Whitespace -> EmbeddedCode -> [SlimNode] -> Parser SlimNode
+      code w c = (pure . (slimNode w) . (EmbeddedCodeNode c) . slimTree)
 
   verbatimTextNode :: Parser SlimNode
   verbatimTextNode =
