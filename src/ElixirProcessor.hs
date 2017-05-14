@@ -26,10 +26,6 @@ module ElixirProcessor where
   endNode :: Node
   endNode = EmbeddedCodeNode (ControlCode "end") (Tree [])
 
-  isCodeNode :: Node -> Bool
-  isCodeNode (EmbeddedCodeNode _ _) = True
-  isCodeNode _ = False
-
   isDoEndBlock :: EmbeddedCode -> Bool
   isDoEndBlock = matchCode (\c ->
     ("->" `isSuffixOf` c && "fn" `isInfixOf` c)
