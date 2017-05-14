@@ -24,11 +24,14 @@ library
       src
   ghc-options: -Wall -O2
   exposed-modules:
+      Driver
+      ElixirProcessor
       Parser
       Parser.HTML
       Parser.Internal
       Parser.Types
       Parser.Whitespace
+      Renderer
   build-depends:
       base >= 4.9 && < 5
     , megaparsec
@@ -63,16 +66,21 @@ test-suite spec
     , text
     , neat-interpolation
   other-modules:
+      DriverSpec
+      ElixirProcessorSpec
       Parser.AttributesSpec
       Parser.CommentsSpec
       Parser.EmbeddedCodeSpec
       Parser.EmbeddedEnginesSpec
-      Parser.NodesSpec
+      Parser.InlineContentSpec
       Parser.TextSpec
       Parser.WhitespaceSpec
+      Driver
+      ElixirProcessor
       Parser
       Parser.HTML
       Parser.Internal
       Parser.Types
       Parser.Whitespace
+      Renderer
   default-language: Haskell2010

@@ -17,7 +17,7 @@ module ElixirProcessorSpec where
 
   spec :: Spec
   spec = do
-    describe "embedded code block processing" $ do
+    describe "embedded code processing" $ do
       it "inserts <end> tokens for anonymous functions" $ do
         (process <$> (parse slim "<source>" (unpack [text|
         div

@@ -1,4 +1,4 @@
-module ElixirProcessor where
+module ElixirProcessor (process) where
   import Parser
 
   import Data.List (isInfixOf, isSuffixOf)

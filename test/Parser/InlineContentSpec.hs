@@ -1,6 +1,6 @@
 {-# LANGUAGE QuasiQuotes, OverloadedStrings #-}
 
-module Parser.NodesSpec where
+module Parser.InlineContentSpec where
   import Parser (Tree(..), Node(..), Attr(..), EmbeddedCode(..), slim)
 
   import Test.Hspec
@@ -16,28 +16,6 @@ module Parser.NodesSpec where
 
   spec :: Spec
   spec = do
-    describe "nodes" $ do
-      it "may be nested" $ do
-        parse slim "<source>" (unpack [text|
-        head
-          title
-            nested
-          meta
-        body
-          div
-        |]) `shouldParse`
-          Tree [
-            HtmlNode "head" [] (Tree [
-              HtmlNode "title" [] (Tree [
-                HtmlNode "nested" [] (Tree [])
-              ])
-            , HtmlNode "meta" [] (Tree [])
-            ])
-          , HtmlNode "body" [] (Tree [
-              HtmlNode "div" [] (Tree [])
-            ])
-          ]
-
     describe "inline content" $ do
       it "may be text" $ do
         parse slim "<source>" (unpack [text|
