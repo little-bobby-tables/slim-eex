@@ -70,7 +70,7 @@ module Parser ( slim
 
   embeddedEngineNode :: Parser SlimNode
   embeddedEngineNode = do
-    topIndent <- L.indentLevel
+    topIndent <- (unsafePos . ((+) 1) . unPos) <$> L.indentLevel
     try $ (slimNode NoWhitespace) <$> (EmbeddedEngineNode
       <$> some letterChar
       <*> (char ':' *> newline *>

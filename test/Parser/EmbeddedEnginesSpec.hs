@@ -25,6 +25,10 @@ module Parser.EmbeddedEnginesSpec where
             const chopper = {
               owner: 'me'
             };
+        css:
+          .top-level {
+            y: eah;
+          }
         |]) `shouldParse`
           Tree [
             HtmlNode "div" [] (Tree [
@@ -34,4 +38,8 @@ module Parser.EmbeddedEnginesSpec where
               \  owner: 'me'\n\
               \};"
             ])
+          , EmbeddedEngineNode "css"
+            ".top-level {\n\
+            \  y: eah;\n\
+            \}"
           ]
