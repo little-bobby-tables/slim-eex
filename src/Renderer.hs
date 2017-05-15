@@ -32,6 +32,10 @@ module Renderer (renderTree) where
     text
   render (CommentNode (HtmlComment comment)) =
     "<!--" ++ comment ++ "-->"
+  render (EmbeddedEngineNode "javascript" c) =
+    "<script>" ++ c ++ "</script>"
+  render (EmbeddedEngineNode "css" c) =
+    "<style type=\"text/css\">" ++ c ++ "</style>"
   render (WhitespaceNode) =
     " "
   render _ =
