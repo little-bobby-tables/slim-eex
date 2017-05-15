@@ -34,6 +34,8 @@ module Renderer (renderTree) where
     "<!--" ++ comment ++ "-->"
   render (WhitespaceNode) =
     " "
+  render _ =
+    ""
 
   renderAttrs :: [Attr] -> [String]
   renderAttrs = renderFold . foldAttrs
