@@ -75,6 +75,7 @@ test-suite spec
       Parser.InlineContentSpec
       Parser.TextSpec
       Parser.WhitespaceSpec
+      Renderer.AttributesSpec
       Driver
       ElixirProcessor
       Parser
